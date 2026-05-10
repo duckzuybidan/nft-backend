@@ -8,13 +8,13 @@ import * as fs from 'fs';
 import { pipeline } from 'stream/promises';
 import axios from 'axios';
 import FormData from 'form-data';
-import { PrismaService } from '../database/prisma.service';
+import { DatabaseService } from '../database/database.service';
 import { decryptKey, decryptFile, downloadEncryptedFile } from './crypto.util';
 @Injectable()
 export class UploadService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private database: DatabaseService) {}
 
-  async processFile(file: Express.Multer.File, userId: string) {
+  async uploadFile(file: Express.Multer.File, userId: string) {
     const originalPath = file.path;
     const encryptedPath = `${originalPath}.enc`;
 
@@ -34,7 +34,7 @@ export class UploadService {
 
       const { encryptedKey, keyIv } = this.encryptKey(aesKey);
 
-      const record = await this.prisma.file.create({
+      const record = await this.database.file.create({
         data: {
           cid,
           encryptedKey,
@@ -101,7 +101,7 @@ export class UploadService {
   }
 
   async getFile(id: string) {
-    const file = await this.prisma.file.findUnique({
+    const file = await this.database.file.findUnique({
       where: { id },
     });
 

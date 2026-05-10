@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
-import { UserService } from './user/user.service';
-import { UserModule } from './user/user.module';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { UploadModule } from './upload/upload.module';
+import { CollectionModule } from './collection/collection.module';
 
 @Module({
   imports: [
@@ -12,10 +11,9 @@ import { UploadModule } from './upload/upload.module';
       isGlobal: true,
     }),
     AuthModule,
-    UserModule,
     DatabaseModule,
     UploadModule,
+    CollectionModule,
   ],
-  providers: [UserService],
 })
 export class AppModule {}

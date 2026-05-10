@@ -36,7 +36,7 @@ export class UploadController {
     @UploadedFile() file: Express.Multer.File,
     @Req() req: Request & { user: { sub: string } },
   ) {
-    return this.uploadService.processFile(file, req.user.sub);
+    return this.uploadService.uploadFile(file, req.user.sub);
   }
 
   @Get(':id')

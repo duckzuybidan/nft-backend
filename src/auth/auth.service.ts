@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ethers } from 'ethers';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../database/prisma.service';
+import { DatabaseService } from '../database/database.service';
 import { NonceDto } from './dto/nonce.dto';
 import { VerifyDto } from './dto/verify.dto';
 
@@ -9,25 +9,25 @@ import { VerifyDto } from './dto/verify.dto';
 export class AuthService {
   constructor(
     private jwtService: JwtService,
-    private prisma: PrismaService,
+    private database: DatabaseService,
   ) {}
 
   async generateNonce({ address }: NonceDto) {
     const nonce = Math.floor(Math.random() * 1000000).toString();
 
-    const user = await this.prisma.user.findUnique({
+    const user = await this.database.user.findUnique({
       where: { walletAddress: address },
     });
 
     if (!user) {
-      await this.prisma.user.create({
+      await this.database.user.create({
         data: {
           walletAddress: address,
           nonce,
         },
       });
     } else {
-      await this.prisma.user.update({
+      await this.database.user.update({
         where: { walletAddress: address },
         data: { nonce },
       });
@@ -37,7 +37,7 @@ export class AuthService {
   }
 
   async verifySignature({ address, message, signature }: VerifyDto) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.database.user.findUnique({
       where: { walletAddress: address },
     });
 
@@ -55,7 +55,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid nonce');
     }
 
-    await this.prisma.user.update({
+    await this.database.user.update({
       where: { walletAddress: address },
       data: { nonce: '' },
     });
