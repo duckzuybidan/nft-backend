@@ -1,12 +1,18 @@
 import axios from 'axios';
 import * as crypto from 'crypto';
 
-const MASTER_KEY = Buffer.from(process.env.MASTER_KEY!, 'hex');
+function getMasterKey() {
+  const masterKey = process.env.MASTER_KEY;
+  if (!masterKey) {
+    throw new Error('MASTER_KEY environment variable is not defined');
+  }
+  return Buffer.from(masterKey, 'hex');
+}
 
 export function encryptKey(key: Buffer) {
   const iv = crypto.randomBytes(16);
 
-  const cipher = crypto.createCipheriv('aes-256-cbc', MASTER_KEY, iv);
+  const cipher = crypto.createCipheriv('aes-256-cbc', getMasterKey(), iv);
 
   const encrypted = Buffer.concat([cipher.update(key), cipher.final()]);
 
@@ -17,11 +23,9 @@ export function encryptKey(key: Buffer) {
 }
 
 export function decryptKey(encryptedKey: string, keyIv: string) {
-  const masterKey = Buffer.from(process.env.MASTER_KEY!, 'hex');
-
   const decipher = crypto.createDecipheriv(
     'aes-256-cbc',
-    masterKey,
+    getMasterKey(),
     Buffer.from(keyIv, 'hex'),
   );
 

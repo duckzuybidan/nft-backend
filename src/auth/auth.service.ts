@@ -60,7 +60,7 @@ export class AuthService {
       data: { nonce: '' },
     });
 
-    const payload = { address };
+    const payload = { sub: user.id, address };
 
     return {
       accessToken: this.jwtService.sign(payload),

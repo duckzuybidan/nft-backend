@@ -6,13 +6,17 @@ import {
   UploadedFile,
   UseInterceptors,
   Res,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { UploadService } from './upload.service';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import { AuthGuard } from '../auth/auth.guard';
 
 @Controller('upload')
+@UseGuards(AuthGuard)
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 
@@ -28,8 +32,11 @@ export class UploadController {
       }),
     }),
   )
-  async upload(@UploadedFile() file: Express.Multer.File) {
-    return this.uploadService.processFile(file);
+  async upload(
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request & { user: { sub: string } },
+  ) {
+    return this.uploadService.processFile(file, req.user.sub);
   }
 
   @Get(':id')

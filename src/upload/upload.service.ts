@@ -14,7 +14,7 @@ import { decryptKey, decryptFile, downloadEncryptedFile } from './crypto.util';
 export class UploadService {
   constructor(private prisma: PrismaService) {}
 
-  async processFile(file: Express.Multer.File) {
+  async processFile(file: Express.Multer.File, userId: string) {
     const originalPath = file.path;
     const encryptedPath = `${originalPath}.enc`;
 
@@ -40,6 +40,18 @@ export class UploadService {
           encryptedKey,
           iv: iv.toString('hex'),
           keyIv,
+          userId,
+
+          metadata: {
+            create: {
+              fileName: file.originalname,
+              mimeType: file.mimetype,
+              size: file.size,
+            },
+          },
+        },
+        include: {
+          metadata: true,
         },
       });
 
