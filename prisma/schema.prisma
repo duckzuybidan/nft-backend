@@ -14,6 +14,7 @@ model User {
   createdAt     DateTime @default(now())
 
   files         File[]
+  listings      Listing[] @relation("SellerListings")
 }
 
 model File {
@@ -28,6 +29,7 @@ model File {
   user         User     @relation(fields: [userId], references: [id])
 
   metadata     FileMetadata?
+  listing      Listing?
 }
 
 model FileMetadata {
@@ -42,4 +44,19 @@ model FileMetadata {
   previewImage String?
 
   createdAt  DateTime @default(now())
+}
+
+model Listing {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  hirePrice Float?
+  buyPrice  Float?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fileId    String   @unique @db.ObjectId
+  file      File     @relation(fields: [fileId], references: [id])
+
+  sellerId  String   @db.ObjectId
+  seller    User     @relation("SellerListings", fields: [sellerId], references: [id])
 }
