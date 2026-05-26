@@ -58,7 +58,11 @@ export class MarketService {
       where: { isActive: true },
       include: {
         file: {
-          include: {
+          select: {
+            id: true,
+            cid: true,
+            createdAt: true,
+            userId: true,
             metadata: true,
             user: {
               select: {
@@ -82,7 +86,11 @@ export class MarketService {
       },
       include: {
         file: {
-          include: {
+          select: {
+            id: true,
+            cid: true,
+            createdAt: true,
+            userId: true,
             metadata: true,
           },
         },

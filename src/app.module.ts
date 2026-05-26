@@ -3,7 +3,7 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { UploadModule } from './upload/upload.module';
-import { UserModule } from './user/user.module';
+import { FileModule } from './file/file.module';
 import { MarketModule } from './market/market.module';
 
 @Module({
@@ -14,7 +14,7 @@ import { MarketModule } from './market/market.module';
     AuthModule,
     DatabaseModule,
     UploadModule,
-    UserModule,
+    FileModule,
     MarketModule,
   ],
 })

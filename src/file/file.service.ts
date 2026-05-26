@@ -2,19 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 
 @Injectable()
-export class UserService {
+export class FileService {
   constructor(private database: DatabaseService) {}
 
-  async getUserFiles(userId: string) {
+  async getUserFileMetadata(userId: string) {
     return this.database.file.findMany({
-      where: {
-        userId: userId,
-      },
-      include: {
+      where: { userId },
+      select: {
+        id: true,
+        cid: true,
+        createdAt: true,
+        userId: true,
         metadata: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
       },
     });
   }
