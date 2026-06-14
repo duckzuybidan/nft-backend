@@ -41,8 +41,9 @@ export class UploadController {
 
   @Get(':id')
   async getFile(@Param('id') id: string, @Res() res: Response) {
-    const { buffer, filename } = await this.uploadService.getFile(id);
+    const { buffer, filename, mimeType } = await this.uploadService.getFile(id);
 
+    res.setHeader('Content-Type', mimeType);
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     res.send(buffer);

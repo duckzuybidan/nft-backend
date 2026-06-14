@@ -238,6 +238,7 @@ export class UploadService {
   async getFile(id: string) {
     const file = await this.database.file.findUnique({
       where: { id },
+      include: { metadata: true },
     });
 
     if (!file) {
@@ -252,8 +253,8 @@ export class UploadService {
 
     return {
       buffer: decryptedBuffer,
-      filename: `file-${id}`,
-      mimeType: 'application/octet-stream',
+      filename: file.metadata?.fileName || `file-${id}`,
+      mimeType: file.metadata?.mimeType || 'application/octet-stream',
     };
   }
 }

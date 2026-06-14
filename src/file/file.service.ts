@@ -5,10 +5,14 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { UpdateFileDto } from './dto/update-file.dto';
+import { UploadService } from '../upload/upload.service';
 
 @Injectable()
 export class FileService {
-  constructor(private database: DatabaseService) {}
+  constructor(
+    private database: DatabaseService,
+    private uploadService: UploadService,
+  ) {}
 
   async getUserFileMetadata(userId: string) {
     return this.database.file.findMany({
@@ -22,6 +26,22 @@ export class FileService {
       },
     });
   }
+
+  async openFile(fileId: string, userId: string) {
+    const file = await this.database.file.findUnique({
+      where: { id: fileId },
+    });
+
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    if (file.userId !== userId) {
+      throw new UnauthorizedException('You do not own this file');
+    }
+
+    return this.uploadService.getFile(fileId);
+  }     
 
   async updateFileMetadata(
     fileId: string,

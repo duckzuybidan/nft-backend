@@ -6,11 +6,12 @@ import {
   Param,
   Patch,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { FileService } from './file.service';
 import { AuthGuard } from '../auth/auth.guard';
-import { Request } from 'express';
+import type { Request, Response } from 'express';
 import { UpdateFileDto } from './dto/update-file.dto';
 
 @Controller('file')
@@ -28,8 +29,24 @@ export class FileController {
     return this.fileService.getUserFileMetadata(req.user.sub);
   }
 
+  @Get('open/:id')
+  async openFile(
+    @Param('id') id: string,
+    @Req() req: Request & { user: { sub: string } },
+    @Res() res: Response,
+  ) {
+    const { buffer, filename, mimeType } = await this.fileService.openFile(
+      id,
+      req.user.sub,
+    );
+
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.send(buffer);
+  }
+
   @Patch(':id')
-  async updateFileMetadata(
+  async updateFile(
     @Param('id') id: string,
     @Req() req: Request & { user: { sub: string } },
     @Body() dto: UpdateFileDto,

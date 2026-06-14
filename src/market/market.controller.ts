@@ -7,6 +7,7 @@ import {
   Param,
   UseGuards,
   Req,
+  Patch,
 } from '@nestjs/common';
 import { MarketService } from './market.service';
 import { CreateListingDto } from './dto/create-listing.dto';
@@ -34,10 +35,13 @@ export class MarketController {
     @Req() req: Request & { user: { sub: string } },
     @Body() dto: CreateListingDto,
   ) {
+    console.log(dto);
+    console.log(typeof dto.hirePrice);
+    console.log(typeof dto.buyPrice);
     return this.marketService.listFile(req.user.sub, dto);
   }
 
-  @Post('listing/:id')
+  @Patch('listing/:id')
   @UseGuards(AuthGuard)
   async updateListing(
     @Req() req: Request & { user: { sub: string } },
