@@ -48,6 +48,7 @@ export class MarketService {
         fileId: dto.fileId,
         hirePrice: dto.hirePrice,
         buyPrice: dto.buyPrice,
+        tokenId: dto.tokenId,
         isActive: true,
         sellerId: userId,
       },
