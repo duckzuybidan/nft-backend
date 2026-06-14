@@ -40,6 +40,7 @@ export class MarketService {
       update: {
         hirePrice: dto.hirePrice,
         buyPrice: dto.buyPrice,
+        tokenId: dto.tokenId,
         isActive: true,
         sellerId: userId,
       },

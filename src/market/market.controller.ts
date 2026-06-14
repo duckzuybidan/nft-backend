@@ -35,9 +35,6 @@ export class MarketController {
     @Req() req: Request & { user: { sub: string } },
     @Body() dto: CreateListingDto,
   ) {
-    console.log(dto);
-    console.log(typeof dto.hirePrice);
-    console.log(typeof dto.buyPrice);
     return this.marketService.listFile(req.user.sub, dto);
   }
 

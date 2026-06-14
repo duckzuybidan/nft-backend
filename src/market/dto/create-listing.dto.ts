@@ -13,6 +13,10 @@ export class CreateListingDto {
   @IsNotEmpty()
   fileId: string;
 
+  @IsString()
+  @IsNotEmpty()
+  tokenId: string;
+
   @Type(() => Number)
   @IsNumber()
   @Min(0)
