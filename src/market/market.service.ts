@@ -7,6 +7,10 @@ import {
 import { DatabaseService } from '../database/database.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 100;
+
 @Injectable()
 export class MarketService {
   constructor(private database: DatabaseService) {}
@@ -55,52 +59,102 @@ export class MarketService {
     });
   }
 
-  async getMarketListings() {
-    return this.database.listing.findMany({
-      where: { isActive: true },
-      include: {
-        file: {
-          select: {
-            id: true,
-            cid: true,
-            createdAt: true,
-            userId: true,
-            metadata: true,
-            user: {
-              select: {
-                walletAddress: true,
+  async getMarketListings(
+    page: number = DEFAULT_PAGE,
+    limit: number = DEFAULT_LIMIT,
+  ) {
+    let parsedPage = page < 1 ? DEFAULT_PAGE : page;
+    let parsedLimit = limit < 1 ? DEFAULT_LIMIT : limit;
+    parsedLimit = parsedLimit > MAX_LIMIT ? MAX_LIMIT : parsedLimit;
+
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const [listings, total] = await Promise.all([
+      this.database.listing.findMany({
+        where: { isActive: true },
+        include: {
+          file: {
+            select: {
+              id: true,
+              cid: true,
+              createdAt: true,
+              userId: true,
+              metadata: true,
+              user: {
+                select: {
+                  walletAddress: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+        skip,
+        take: parsedLimit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.database.listing.count({ where: { isActive: true } }),
+    ]);
+
+    return {
+      data: listings,
+      total,
+      page: parsedPage,
+      limit: parsedLimit,
+      totalPages: Math.ceil(total / parsedLimit),
+    };
   }
 
-  async getUserListings(userId: string) {
-    return this.database.listing.findMany({
-      where: {
-        sellerId: userId,
-        isActive: true,
-      },
-      include: {
-        file: {
-          select: {
-            id: true,
-            cid: true,
-            createdAt: true,
-            userId: true,
-            metadata: true,
+  async getUserListings(
+    userId: string,
+    page: number = DEFAULT_PAGE,
+    limit: number = DEFAULT_LIMIT,
+  ) {
+    let parsedPage = page < 1 ? DEFAULT_PAGE : page;
+    let parsedLimit = limit < 1 ? DEFAULT_LIMIT : limit;
+    parsedLimit = parsedLimit > MAX_LIMIT ? MAX_LIMIT : parsedLimit;
+
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const [listings, total] = await Promise.all([
+      this.database.listing.findMany({
+        where: {
+          sellerId: userId,
+          isActive: true,
+        },
+        include: {
+          file: {
+            select: {
+              id: true,
+              cid: true,
+              createdAt: true,
+              userId: true,
+              metadata: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+        skip,
+        take: parsedLimit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.database.listing.count({
+        where: {
+          sellerId: userId,
+          isActive: true,
+        },
+      }),
+    ]);
+
+    return {
+      data: listings,
+      total,
+      page: parsedPage,
+      limit: parsedLimit,
+      totalPages: Math.ceil(total / parsedLimit),
+    };
   }
 
   async updateListing(
@@ -138,6 +192,34 @@ export class MarketService {
         buyPrice,
       },
     });
+  }
+
+  async getListingById(id: string) {
+    const listing = await this.database.listing.findUnique({
+      where: { id, isActive: true },
+      include: {
+        file: {
+          select: {
+            id: true,
+            cid: true,
+            createdAt: true,
+            userId: true,
+            metadata: true,
+            user: {
+              select: {
+                walletAddress: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+
+    return listing;
   }
 
   async removeListing(userId: string, listingId: string) {

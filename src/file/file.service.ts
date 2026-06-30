@@ -7,6 +7,10 @@ import { DatabaseService } from '../database/database.service';
 import { UpdateFileDto } from './dto/update-file.dto';
 import { UploadService } from '../upload/upload.service';
 
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 100;
+
 @Injectable()
 export class FileService {
   constructor(
@@ -14,17 +18,43 @@ export class FileService {
     private uploadService: UploadService,
   ) {}
 
-  async getUserFileMetadata(userId: string) {
-    return this.database.file.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        cid: true,
-        createdAt: true,
-        userId: true,
-        metadata: true,
-      },
-    });
+  async getUserFileMetadata(
+    userId: string,
+    page: number = DEFAULT_PAGE,
+    limit: number = DEFAULT_LIMIT,
+  ) {
+    let parsedPage = page < 1 ? DEFAULT_PAGE : page;
+    let parsedLimit = limit < 1 ? DEFAULT_LIMIT : limit;
+    parsedLimit = parsedLimit > MAX_LIMIT ? MAX_LIMIT : parsedLimit;
+
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const [files, total] = await Promise.all([
+      this.database.file.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          cid: true,
+          createdAt: true,
+          userId: true,
+          metadata: true,
+        },
+        skip,
+        take: parsedLimit,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.database.file.count({ where: { userId } }),
+    ]);
+
+    return {
+      data: files,
+      total,
+      page: parsedPage,
+      limit: parsedLimit,
+      totalPages: Math.ceil(total / parsedLimit),
+    };
   }
 
   async openFile(fileId: string, userId: string) {
@@ -41,7 +71,7 @@ export class FileService {
     }
 
     return this.uploadService.getFile(fileId);
-  }     
+  }
 
   async updateFileMetadata(
     fileId: string,

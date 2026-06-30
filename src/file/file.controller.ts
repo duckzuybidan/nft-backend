@@ -8,11 +8,39 @@ import {
   Req,
   Res,
   UseGuards,
+  Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileService } from './file.service';
 import { AuthGuard } from '../auth/auth.guard';
 import type { Request, Response } from 'express';
 import { UpdateFileDto } from './dto/update-file.dto';
+
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 100;
+
+function parsePagination(
+  page?: string,
+  limit?: string,
+): { page: number; limit: number } {
+  let parsedPage = page ? parseInt(page, 10) : DEFAULT_PAGE;
+  let parsedLimit = limit ? parseInt(limit, 10) : DEFAULT_LIMIT;
+
+  if (isNaN(parsedPage) || parsedPage < 1) {
+    parsedPage = DEFAULT_PAGE;
+  }
+
+  if (isNaN(parsedLimit) || parsedLimit < 1) {
+    parsedLimit = DEFAULT_LIMIT;
+  }
+
+  if (parsedLimit > MAX_LIMIT) {
+    parsedLimit = MAX_LIMIT;
+  }
+
+  return { page: parsedPage, limit: parsedLimit };
+}
 
 @Controller('file')
 @UseGuards(AuthGuard)
@@ -20,13 +48,37 @@ export class FileController {
   constructor(private readonly fileService: FileService) {}
 
   @Get('/by-user-id/:userId')
-  async getUserFileMetadata(@Param('userId') userId: string) {
-    return this.fileService.getUserFileMetadata(userId);
+  async getUserFileMetadata(
+    @Param('userId') userId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const { page: parsedPage, limit: parsedLimit } = parsePagination(
+      page,
+      limit,
+    );
+    return this.fileService.getUserFileMetadata(
+      userId,
+      parsedPage,
+      parsedLimit,
+    );
   }
 
   @Get('/my-files')
-  async getMyFileMetadata(@Req() req: Request & { user: { sub: string } }) {
-    return this.fileService.getUserFileMetadata(req.user.sub);
+  async getMyFileMetadata(
+    @Req() req: Request & { user: { sub: string } },
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const { page: parsedPage, limit: parsedLimit } = parsePagination(
+      page,
+      limit,
+    );
+    return this.fileService.getUserFileMetadata(
+      req.user.sub,
+      parsedPage,
+      parsedLimit,
+    );
   }
 
   @Get('open/:id')
