@@ -240,4 +240,42 @@ export class MarketService {
       data: { isActive: false },
     });
   }
+
+  async buyFile(userId: string, listingId: string) {
+    const listing = await this.database.listing.findUnique({
+      where: { id: listingId },
+      include: { file: true },
+    });
+
+    if (!listing) {
+      throw new NotFoundException('Listing not found');
+    }
+
+    if (!listing.isActive) {
+      throw new BadRequestException('Listing is not active');
+    }
+
+    if (!listing.buyPrice) {
+      throw new BadRequestException('This listing is not for sale');
+    }
+
+    if (listing.sellerId === userId) {
+      throw new BadRequestException('You cannot buy your own listing');
+    }
+
+    // Mark listing as inactive
+    const updatedListing = await this.database.listing.update({
+      where: { id: listingId },
+      data: { isActive: false },
+      include: { file: true },
+    });
+
+    // Transfer file ownership to the buyer
+    await this.database.file.update({
+      where: { id: listing.fileId },
+      data: { userId: userId },
+    });
+
+    return updatedListing;
+  }
 }

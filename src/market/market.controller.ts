@@ -107,4 +107,13 @@ export class MarketController {
   ) {
     return this.marketService.removeListing(req.user.sub, id);
   }
+
+  @Post('listing/:id/buy')
+  @UseGuards(AuthGuard)
+  async buyFile(
+    @Req() req: Request & { user: { sub: string } },
+    @Param('id') id: string,
+  ) {
+    return this.marketService.buyFile(req.user.sub, id);
+  }
 }
