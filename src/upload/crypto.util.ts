@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as crypto from 'crypto';
+import { Readable } from 'stream';
 
 function getMasterKey() {
   const masterKey = process.env.MASTER_KEY;
@@ -64,4 +65,22 @@ export function decryptFile(
   ]);
 
   return decrypted;
+}
+
+export async function downloadEncryptedFileStream(cid: string): Promise<Readable> {
+  const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
+  
+  const response = await axios.get(url, {
+    responseType: 'stream',
+  });
+  
+  return response.data as Readable;
+}
+
+export function createDecryptStream(aesKey: Buffer, iv: string) {
+  return crypto.createDecipheriv(
+    'aes-256-cbc',
+    aesKey,
+    Buffer.from(iv, 'hex'),
+  );
 }

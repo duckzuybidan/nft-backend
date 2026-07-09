@@ -130,4 +130,43 @@ export class FileService {
       });
     });
   }
+
+  async getFileMetadata(fileId: string, userId: string) {
+    const file = await this.database.file.findUnique({
+      where: { id: fileId },
+      include: { metadata: true },
+    });
+
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    if (file.userId !== userId) {
+      throw new UnauthorizedException('You do not own this file');
+    }
+
+    return {
+      id: file.id,
+      fileName: file.metadata?.fileName || `File ${fileId}`,
+      mimeType: file.metadata?.mimeType || 'application/octet-stream',
+      size: file.metadata?.size || 0,
+      previewImage: file.metadata?.previewImage || null,
+    };
+  }
+
+  async streamFile(fileId: string, userId: string) {
+    const file = await this.database.file.findUnique({
+      where: { id: fileId },
+    });
+
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    if (file.userId !== userId) {
+      throw new UnauthorizedException('You do not own this file');
+    }
+
+    return this.uploadService.streamFile(fileId);
+  }
 }
