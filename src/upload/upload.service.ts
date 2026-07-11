@@ -14,13 +14,7 @@ import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
 import * as pdf from 'pdf-to-img';
 import { DatabaseService } from '../database/database.service';
-import {
-  decryptKey,
-  decryptFile,
-  downloadEncryptedFile,
-  downloadEncryptedFileStream,
-  createDecryptStream,
-} from './crypto.util';
+import { decryptKey, decryptFile, downloadEncryptedFile } from './crypto.util';
 
 @Injectable()
 export class UploadService {
@@ -261,28 +255,6 @@ export class UploadService {
       buffer: decryptedBuffer,
       filename: file.metadata?.fileName || `file-${id}`,
       mimeType: file.metadata?.mimeType || 'application/octet-stream',
-    };
-  }
-
-  async streamFile(id: string) {
-    const file = await this.database.file.findUnique({
-      where: { id },
-      include: { metadata: true },
-    });
-
-    if (!file) {
-      throw new NotFoundException('File not found');
-    }
-
-    const aesKey = decryptKey(file.encryptedKey, file.keyIv);
-    const encryptedStream = await downloadEncryptedFileStream(file.cid);
-    const decryptStream = createDecryptStream(aesKey, file.iv);
-
-    return {
-      stream: encryptedStream.pipe(decryptStream),
-      filename: file.metadata?.fileName || `file-${id}`,
-      mimeType: file.metadata?.mimeType || 'application/octet-stream',
-      size: file.metadata?.size,
     };
   }
 }
