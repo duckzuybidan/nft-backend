@@ -97,6 +97,28 @@ export class FileController {
     res.send(buffer);
   }
 
+  @Get('open/:id/:page')
+  async openFilePage(
+    @Param('id') id: string,
+    @Param('page') page: string,
+    @Req() req: Request & { user: { sub: string } },
+    @Res() res: Response,
+  ) {
+    const pageNumber = parseInt(page, 10);
+    if (isNaN(pageNumber) || pageNumber < 1) {
+      throw new BadRequestException('Invalid page number');
+    }
+
+    const { buffer, filename, mimeType, totalPages, currentPage } =
+      await this.fileService.getFilePage(id, pageNumber, req.user.sub);
+
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.setHeader('X-Total-Pages', String(totalPages));
+    res.setHeader('X-Current-Page', String(currentPage));
+    res.send(buffer);
+  }
+
   @Patch(':id')
   async updateFile(
     @Param('id') id: string,

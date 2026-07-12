@@ -7,6 +7,7 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.CLIENT_URL,
     credentials: true,
+    exposedHeaders: ['X-Total-Pages', 'X-Current-Page'],
   });
 
   app.useGlobalPipes(
