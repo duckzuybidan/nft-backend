@@ -30,6 +30,23 @@ model File {
 
   metadata     FileMetadata?
   listing      Listing?
+  streamProfile StreamProfile?
+}
+
+model StreamProfile {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  fileId         String   @unique @db.ObjectId
+  file           File     @relation(fields: [fileId], references: [id])
+
+  status         String   @default("processing")
+  masterPlaylist String?
+  segmentKeyEnc  String?
+  segmentKeyIv   String?
+  duration       Float?
+  segments       Json?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model FileMetadata {
