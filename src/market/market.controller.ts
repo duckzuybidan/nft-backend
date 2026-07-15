@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { MarketService } from './market.service';
 import { CreateListingDto } from './dto/create-listing.dto';
+import { UpdateListingDto } from './dto/update-listing.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { Request } from 'express';
 
@@ -94,7 +95,7 @@ export class MarketController {
   async updateListing(
     @Req() req: Request & { user: { sub: string } },
     @Param('id') id: string,
-    @Body() dto: Partial<CreateListingDto>,
+    @Body() dto: UpdateListingDto,
   ) {
     return this.marketService.updateListing(req.user.sub, id, dto);
   }

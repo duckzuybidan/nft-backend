@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { CreateListingDto } from './dto/create-listing.dto';
+import { UpdateListingDto } from './dto/update-listing.dto';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -117,12 +118,11 @@ export class MarketService {
 
     const skip = (parsedPage - 1) * parsedLimit;
 
+    const where = { sellerId: userId };
+
     const [listings, total] = await Promise.all([
       this.database.listing.findMany({
-        where: {
-          sellerId: userId,
-          isActive: true,
-        },
+        where,
         include: {
           file: {
             select: {
@@ -131,6 +131,11 @@ export class MarketService {
               createdAt: true,
               userId: true,
               metadata: true,
+              user: {
+                select: {
+                  walletAddress: true,
+                },
+              },
             },
           },
         },
@@ -140,12 +145,7 @@ export class MarketService {
           createdAt: 'desc',
         },
       }),
-      this.database.listing.count({
-        where: {
-          sellerId: userId,
-          isActive: true,
-        },
-      }),
+      this.database.listing.count({ where }),
     ]);
 
     return {
@@ -160,7 +160,7 @@ export class MarketService {
   async updateListing(
     userId: string,
     listingId: string,
-    dto: Partial<CreateListingDto>,
+    dto: UpdateListingDto,
   ) {
     const listing = await this.database.listing.findUnique({
       where: { id: listingId },
@@ -174,22 +174,35 @@ export class MarketService {
       throw new UnauthorizedException('You do not own this listing');
     }
 
+    if (
+      dto.hirePrice === undefined &&
+      dto.buyPrice === undefined &&
+      dto.isActive === undefined
+    ) {
+      throw new BadRequestException(
+        'At least one field (hirePrice, buyPrice, or isActive) must be provided',
+      );
+    }
+
     const hirePrice =
       dto.hirePrice !== undefined ? dto.hirePrice : listing.hirePrice;
     const buyPrice =
       dto.buyPrice !== undefined ? dto.buyPrice : listing.buyPrice;
+    const isActive =
+      dto.isActive !== undefined ? dto.isActive : listing.isActive;
 
-    if (!hirePrice && !buyPrice) {
+    if (isActive && !hirePrice && !buyPrice) {
       throw new BadRequestException(
-        'A listing must have at least one price (hire or buy)',
+        'An active listing must have at least one price (hire or buy)',
       );
     }
 
     return this.database.listing.update({
       where: { id: listingId },
       data: {
-        hirePrice,
-        buyPrice,
+        ...(dto.hirePrice !== undefined && { hirePrice: dto.hirePrice }),
+        ...(dto.buyPrice !== undefined && { buyPrice: dto.buyPrice }),
+        ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
     });
   }
