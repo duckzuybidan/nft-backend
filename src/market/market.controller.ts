@@ -80,6 +80,15 @@ export class MarketController {
     );
   }
 
+  @Post('metadata/:fileId')
+  @UseGuards(AuthGuard)
+  async createNftMetadata(
+    @Req() req: Request & { user: { sub: string } },
+    @Param('fileId') fileId: string,
+  ) {
+    return this.marketService.createNftMetadata(req.user.sub, fileId);
+  }
+
   @Post('list')
   @UseGuards(AuthGuard)
   async listFile(

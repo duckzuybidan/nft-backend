@@ -4,16 +4,109 @@ import {
   BadRequestException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { DatabaseService } from '../database/database.service';
 import { CreateListingDto } from './dto/create-listing.dto';
+import { UploadService } from '../upload/upload.service';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 100;
 
+export enum ContentType {
+  VIDEO = 0,
+  IMAGE = 1,
+  AUDIO = 2,
+  EBOOK = 3,
+  SOFTWARE = 4,
+  OTHER = 5,
+}
+
 @Injectable()
 export class MarketService {
-  constructor(private database: DatabaseService) {}
+  constructor(
+    private database: DatabaseService,
+    private uploadService: UploadService,
+  ) {}
+
+  async createNftMetadata(userId: string, fileId: string) {
+    const file = await this.database.file.findUnique({
+      where: { id: fileId },
+      include: { metadata: true },
+    });
+
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    if (file.userId !== userId) {
+      throw new UnauthorizedException('You do not own this file');
+    }
+
+    const fileName = file.metadata?.fileName || `file-${fileId}`;
+    const mimeType = file.metadata?.mimeType || 'application/octet-stream';
+    const previewImage = file.metadata?.previewImage || undefined;
+    const contentType = this.resolveContentType(mimeType);
+    const contentHash = `0x${createHash('sha256').update(file.cid).digest('hex')}`;
+
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
+    const metadata = {
+      name: fileName,
+      description: `NFT-protected digital asset: ${fileName}`,
+      image: previewImage,
+      external_url: `${clientUrl}/files/${fileId}`,
+      fileId,
+      attributes: [
+        { trait_type: 'fileId', value: fileId },
+        { trait_type: 'mimeType', value: mimeType },
+        { trait_type: 'size', value: file.metadata?.size ?? 0 },
+        { trait_type: 'contentType', value: ContentType[contentType] },
+        { trait_type: 'contentCid', value: file.cid },
+      ],
+      properties: {
+        fileId,
+        mimeType,
+        cid: file.cid,
+      },
+    };
+
+    const metadataCid = await this.uploadService.uploadJsonToPinata(
+      metadata,
+      `nft-metadata-${fileId}`,
+    );
+    const metadataURI = this.uploadService.getGatewayUrl(metadataCid);
+
+    return {
+      metadataURI,
+      metadataCid,
+      contentHash,
+      contentType,
+      title: fileName,
+      mimeType,
+      previewImage,
+    };
+  }
+
+  private resolveContentType(mimeType: string): ContentType {
+    if (mimeType.startsWith('video/')) return ContentType.VIDEO;
+    if (mimeType.startsWith('image/')) return ContentType.IMAGE;
+    if (mimeType.startsWith('audio/')) return ContentType.AUDIO;
+    if (
+      mimeType === 'application/pdf' ||
+      mimeType.includes('ebook') ||
+      mimeType.includes('epub')
+    ) {
+      return ContentType.EBOOK;
+    }
+    if (
+      mimeType.includes('javascript') ||
+      mimeType.includes('zip') ||
+      mimeType.includes('octet-stream')
+    ) {
+      return ContentType.SOFTWARE;
+    }
+    return ContentType.OTHER;
+  }
 
   async listFile(userId: string, dto: CreateListingDto) {
     const file = await this.database.file.findUnique({

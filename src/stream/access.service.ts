@@ -45,6 +45,16 @@ export class AccessService {
       return file;
     }
 
+    const grant = await this.database.accessGrant.findUnique({
+      where: {
+        userId_fileId: { userId, fileId },
+      },
+    });
+
+    if (grant && grant.balance > 0) {
+      return file;
+    }
+
     throw new UnauthorizedException(
       'You do not have access to stream this content',
     );

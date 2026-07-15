@@ -29,7 +29,7 @@ export class UploadService {
     private streamingService: StreamingService,
   ) {}
 
-  private getGatewayUrl(cid: string) {
+  getGatewayUrl(cid: string) {
     const gateway =
       this.configService.get<string>('IPFS_GATEWAY') ||
       'https://gateway.pinata.cloud/ipfs/';
@@ -252,6 +252,27 @@ export class UploadService {
     );
 
     return res.data.IpfsHash;
+  }
+
+  async uploadJsonToPinata(payload: Record<string, unknown>, name?: string) {
+    const res = await axios.post(
+      'https://api.pinata.cloud/pinning/pinJSONToIPFS',
+      {
+        pinataContent: payload,
+        pinataMetadata: {
+          name: name || 'nft-metadata',
+        },
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          pinata_api_key: process.env.PINATA_API_KEY!,
+          pinata_secret_api_key: process.env.PINATA_SECRET_API_KEY!,
+        },
+      },
+    );
+
+    return res.data.IpfsHash as string;
   }
 
   async getFile(id: string) {
