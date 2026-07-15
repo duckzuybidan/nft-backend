@@ -7,6 +7,7 @@ import { DatabaseModule } from './database/database.module';
 import { UploadModule } from './upload/upload.module';
 import { FileModule } from './file/file.module';
 import { MarketModule } from './market/market.module';
+import { StreamModule } from './stream/stream.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MarketModule } from './market/market.module';
     UploadModule,
     FileModule,
     MarketModule,
+    StreamModule,
   ],
 })
 export class AppModule {}

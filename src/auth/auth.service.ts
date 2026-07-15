@@ -4,12 +4,14 @@ import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '../database/database.service';
 import { NonceDto } from './dto/nonce.dto';
 import { VerifyDto } from './dto/verify.dto';
+import { OwnershipSyncService } from './ownership-sync.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private jwtService: JwtService,
     private database: DatabaseService,
+    private ownershipSync: OwnershipSyncService,
   ) {}
 
   async generateNonce({ address }: NonceDto) {
@@ -60,10 +62,17 @@ export class AuthService {
       data: { nonce: '' },
     });
 
+    // Do not block JWT issuance — sync runs in the background and via /auth/sync-ownership.
+    this.ownershipSync.syncInBackground(user.id, address);
+
     const payload = { sub: user.id, address };
 
     return {
       accessToken: this.jwtService.sign(payload),
     };
+  }
+
+  async syncOwnership(userId: string, walletAddress: string) {
+    return this.ownershipSync.syncWalletOwnership(userId, walletAddress);
   }
 }

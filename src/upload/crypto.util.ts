@@ -37,14 +37,43 @@ export function decryptKey(encryptedKey: string, keyIv: string) {
   return decrypted;
 }
 
+export function getIpfsGatewayUrl(cid: string) {
+  const gateway =
+    process.env.IPFS_GATEWAY || 'https://gateway.pinata.cloud/ipfs/';
+  return `${gateway}${cid}`;
+}
+
 export async function downloadEncryptedFile(cid: string) {
-  const url = `https://gateway.pinata.cloud/ipfs/${cid}`;
+  const url = getIpfsGatewayUrl(cid);
 
   const response = await axios.get(url, {
     responseType: 'arraybuffer',
   });
 
   return Buffer.from(response.data);
+}
+
+export function encryptSegment(data: Buffer, key: Buffer) {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-128-cbc', key, iv);
+  const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
+  return { encrypted, iv: iv.toString('hex') };
+}
+
+export function decryptSegment(
+  encryptedBuffer: Buffer,
+  key: Buffer,
+  iv: string,
+) {
+  const decipher = crypto.createDecipheriv(
+    'aes-128-cbc',
+    key,
+    Buffer.from(iv, 'hex'),
+  );
+  return Buffer.concat([
+    decipher.update(encryptedBuffer),
+    decipher.final(),
+  ]);
 }
 
 export function decryptFile(

@@ -15,6 +15,7 @@ model User {
 
   files         File[]
   listings      Listing[] @relation("SellerListings")
+  accessGrants  AccessGrant[]
 }
 
 model File {
@@ -30,6 +31,38 @@ model File {
 
   metadata     FileMetadata?
   listing      Listing?
+  streamProfile StreamProfile?
+  accessGrants  AccessGrant[]
+}
+
+model AccessGrant {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  fileId    String   @db.ObjectId
+  file      File     @relation(fields: [fileId], references: [id])
+  tokenId   String
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, fileId])
+}
+
+model StreamProfile {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  fileId         String   @unique @db.ObjectId
+  file           File     @relation(fields: [fileId], references: [id])
+
+  status         String   @default("processing")
+  masterPlaylist String?
+  segmentKeyEnc  String?
+  segmentKeyIv   String?
+  duration       Float?
+  segments       Json?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model FileMetadata {

@@ -2,6 +2,8 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
@@ -12,18 +14,22 @@ import axios from 'axios';
 import FormData from 'form-data';
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
+import { configureFfmpeg } from '../common/ffmpeg.config';
 import * as pdf from 'pdf-to-img';
 import { DatabaseService } from '../database/database.service';
 import { decryptKey, decryptFile, downloadEncryptedFile } from './crypto.util';
+import { StreamingService } from '../stream/streaming.service';
 
 @Injectable()
 export class UploadService {
   constructor(
     private database: DatabaseService,
     private configService: ConfigService,
+    @Inject(forwardRef(() => StreamingService))
+    private streamingService: StreamingService,
   ) {}
 
-  private getGatewayUrl(cid: string) {
+  getGatewayUrl(cid: string) {
     const gateway =
       this.configService.get<string>('IPFS_GATEWAY') ||
       'https://gateway.pinata.cloud/ipfs/';
@@ -75,6 +81,18 @@ export class UploadService {
         },
       });
 
+      if (this.streamingService.isStreamableMimeType(file.mimetype)) {
+        const streamSourcePath = `${originalPath}.stream-source`;
+        fs.copyFileSync(originalPath, streamSourcePath);
+        void this.streamingService
+          .processMediaForStreaming(record.id, streamSourcePath, file.mimetype)
+          .finally(() => {
+            if (fs.existsSync(streamSourcePath)) {
+              fs.unlinkSync(streamSourcePath);
+            }
+          });
+      }
+
       fs.unlinkSync(originalPath);
       fs.unlinkSync(encryptedPath);
 
@@ -103,6 +121,7 @@ export class UploadService {
           .resize(400, 400, { fit: 'inside', withoutEnlargement: true })
           .toFile(previewPath);
       } else if (file.mimetype.startsWith('video/')) {
+        configureFfmpeg();
         await new Promise((resolve, reject) => {
           ffmpeg(originalPath)
             .screenshots({
@@ -233,6 +252,27 @@ export class UploadService {
     );
 
     return res.data.IpfsHash;
+  }
+
+  async uploadJsonToPinata(payload: Record<string, unknown>, name?: string) {
+    const res = await axios.post(
+      'https://api.pinata.cloud/pinning/pinJSONToIPFS',
+      {
+        pinataContent: payload,
+        pinataMetadata: {
+          name: name || 'nft-metadata',
+        },
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          pinata_api_key: process.env.PINATA_API_KEY!,
+          pinata_secret_api_key: process.env.PINATA_SECRET_API_KEY!,
+        },
+      },
+    );
+
+    return res.data.IpfsHash as string;
   }
 
   async getFile(id: string) {

@@ -83,9 +83,7 @@ export class FileService {
       throw new NotFoundException('File not found');
     }
 
-    if (file.userId !== userId) {
-      throw new UnauthorizedException('You do not own this file');
-    }
+    await this.assertFileAccess(fileId, userId, file.userId);
 
     return this.uploadService.getFile(fileId);
   }
@@ -114,9 +112,7 @@ export class FileService {
       throw new NotFoundException('File not found');
     }
 
-    if (file.userId !== userId) {
-      throw new UnauthorizedException('You do not own this file');
-    }
+    await this.assertFileAccess(fileId, userId, file.userId);
 
     const cacheKey = `pdf-buffer:${fileId}`;
 
@@ -449,9 +445,35 @@ export class FileService {
         });
       }
 
+      await tx.accessGrant.deleteMany({
+        where: { fileId },
+      });
+
       return tx.file.delete({
         where: { id: fileId },
       });
     });
+  }
+
+  private async assertFileAccess(
+    fileId: string,
+    userId: string,
+    ownerId: string,
+  ) {
+    if (ownerId === userId) {
+      return;
+    }
+
+    const grant = await this.database.accessGrant.findUnique({
+      where: {
+        userId_fileId: { userId, fileId },
+      },
+    });
+
+    if (grant && grant.balance > 0) {
+      return;
+    }
+
+    throw new UnauthorizedException('You do not own this file');
   }
 }
