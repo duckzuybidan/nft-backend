@@ -7,6 +7,7 @@ import {
 import { createHash } from 'crypto';
 import { DatabaseService } from '../database/database.service';
 import { CreateListingDto } from './dto/create-listing.dto';
+import { UpdateListingDto } from './dto/update-listing.dto';
 import { UploadService } from '../upload/upload.service';
 
 const DEFAULT_PAGE = 1;
